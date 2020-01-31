@@ -209,21 +209,36 @@ RCT_REMAP_METHOD(refresh,
     
     OIDExternalUserAgentIOSSafariViewController *externalUserAgent =
       [[OIDExternalUserAgentIOSSafariViewController alloc] initWithPresentingViewController:appDelegate.window.rootViewController];
-
-    
-    _currentSession = [OIDAuthState authStateByPresentingAuthorizationRequest:request
-                                   externalUserAgent:externalUserAgent
-                                                   callback:^(OIDAuthState *_Nullable authState,
-                                                              NSError *_Nullable error) {
-                                                       typeof(self) strongSelf = weakSelf;
-                                                       strongSelf->_currentSession = nil;
-                                                       if (authState) {
-                                                           resolve([self formatResponse:authState.lastTokenResponse
-                                                               withAuthResponse:authState.lastAuthorizationResponse]);
-                                                       } else {
-                                                           reject(@"RNAppAuth Error", [error localizedDescription], error);
-                                                       }
-                                                   }]; // end [OIDAuthState authStateByPresentingAuthorizationRequest:request
+            
+    if ([additionalParameters valueForKey:@"defaultUserAgent"] != nil) {
+           _currentSession = [OIDAuthState authStateByPresentingAuthorizationRequest:request
+                                                            presentingViewController:appDelegate.window.rootViewController
+                                                                            callback:^(OIDAuthState *_Nullable authState,
+                      NSError *_Nullable error) {
+               typeof(self) strongSelf = weakSelf;
+               strongSelf->_currentSession = nil;
+               if (authState) {
+                   resolve([self formatResponse:authState.lastTokenResponse
+                       withAuthResponse:authState.lastAuthorizationResponse]);
+               } else {
+                   reject(@"RNAppAuth Error", [error localizedDescription], error);
+               }
+           }]; // end [OIDAuthState authStateByPresentingAuthorizationRequest:request
+    } else {
+        _currentSession = [OIDAuthState authStateByPresentingAuthorizationRequest:request
+                                                                externalUserAgent:externalUserAgent
+                                                                         callback:^(OIDAuthState *_Nullable authState,
+                                                                                 NSError *_Nullable error) {
+                                                                          typeof(self) strongSelf = weakSelf;
+                                                                          strongSelf->_currentSession = nil;
+                                                                          if (authState) {
+                                                                              resolve([self formatResponse:authState.lastTokenResponse
+                                                                                  withAuthResponse:authState.lastAuthorizationResponse]);
+                                                                          } else {
+                                                                              reject(@"RNAppAuth Error", [error localizedDescription], error);
+                                                                          }
+                                                                      }]; // end [OIDAuthState authStateByPresentingAuthorizationRequest:request
+    }
 }
 
 
