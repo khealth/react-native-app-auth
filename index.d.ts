@@ -83,3 +83,10 @@ export function revoke(
   config: BaseAuthConfiguration,
   revokeConfig: RevokeConfiguration
 ): Promise<void>;
+
+export function credentialBuilder(): Promise<{
+  codeChallenge: string;
+  codeVerifier: string;
+  nonce: string;
+  state: string;
+}>;
