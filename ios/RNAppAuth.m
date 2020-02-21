@@ -127,6 +127,13 @@ RCT_REMAP_METHOD(refresh,
     }
 } // end RCT_REMAP_METHOD(refresh,
 
+RCT_REMAP_METHOD(credentialBuilder,
+                 resolve: (RCTPromiseResolveBlock) resolve
+                 reject: (RCTPromiseRejectBlock)  reject)
+{
+    resolve([self credentialBuilder]);
+}
+
 
 /*
  * Create a OIDServiceConfiguration from passed serviceConfiguration dictionary
@@ -209,21 +216,36 @@ RCT_REMAP_METHOD(refresh,
     
     OIDExternalUserAgentIOSSafariViewController *externalUserAgent =
       [[OIDExternalUserAgentIOSSafariViewController alloc] initWithPresentingViewController:appDelegate.window.rootViewController];
-
-    
-    _currentSession = [OIDAuthState authStateByPresentingAuthorizationRequest:request
-                                   externalUserAgent:externalUserAgent
-                                                   callback:^(OIDAuthState *_Nullable authState,
-                                                              NSError *_Nullable error) {
-                                                       typeof(self) strongSelf = weakSelf;
-                                                       strongSelf->_currentSession = nil;
-                                                       if (authState) {
-                                                           resolve([self formatResponse:authState.lastTokenResponse
-                                                               withAuthResponse:authState.lastAuthorizationResponse]);
-                                                       } else {
-                                                           reject(@"RNAppAuth Error", [error localizedDescription], error);
-                                                       }
-                                                   }]; // end [OIDAuthState authStateByPresentingAuthorizationRequest:request
+            
+    if ([additionalParameters valueForKey:@"defaultUserAgent"] != nil) {
+           _currentSession = [OIDAuthState authStateByPresentingAuthorizationRequest:request
+                                                            presentingViewController:appDelegate.window.rootViewController
+                                                                            callback:^(OIDAuthState *_Nullable authState,
+                      NSError *_Nullable error) {
+               typeof(self) strongSelf = weakSelf;
+               strongSelf->_currentSession = nil;
+               if (authState) {
+                   resolve([self formatResponse:authState.lastTokenResponse
+                       withAuthResponse:authState.lastAuthorizationResponse]);
+               } else {
+                   reject(@"RNAppAuth Error", [error localizedDescription], error);
+               }
+           }]; // end [OIDAuthState authStateByPresentingAuthorizationRequest:request
+    } else {
+        _currentSession = [OIDAuthState authStateByPresentingAuthorizationRequest:request
+                                                                externalUserAgent:externalUserAgent
+                                                                         callback:^(OIDAuthState *_Nullable authState,
+                                                                                 NSError *_Nullable error) {
+                                                                          typeof(self) strongSelf = weakSelf;
+                                                                          strongSelf->_currentSession = nil;
+                                                                          if (authState) {
+                                                                              resolve([self formatResponse:authState.lastTokenResponse
+                                                                                  withAuthResponse:authState.lastAuthorizationResponse]);
+                                                                          } else {
+                                                                              reject(@"RNAppAuth Error", [error localizedDescription], error);
+                                                                          }
+                                                                      }]; // end [OIDAuthState authStateByPresentingAuthorizationRequest:request
+    }
 }
 
 
@@ -302,6 +324,22 @@ RCT_REMAP_METHOD(refresh,
              @"tokenType": response.tokenType ? response.tokenType : @"",
              @"scopes": authResponse.scope ? [authResponse.scope componentsSeparatedByString:@" "] : [NSArray new],
              };
+}
+
+/*
+ * Authorize a user in exchange for a token with provided OIDServiceConfiguration
+ */
+- (NSDictionary*)credentialBuilder {
+    NSString *codeVerifier = [[self class] generateCodeVerifier];
+    NSString *codeChallenge = [[self class] codeChallengeS256ForVerifier:codeVerifier];
+    NSString *nonce = [[self class] generateState];
+    NSString *state = [[self class] generateState];
+    
+    return @{@"codeVerifier": codeVerifier,
+            @"codeChallenge": codeChallenge,
+                    @"nonce": nonce,
+                    @"state": state,
+    };
 }
 
 @end

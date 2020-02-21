@@ -205,3 +205,5 @@ export const revoke = async (
     throw new Error('Failed to revoke token', error);
   });
 };
+
+export const credentialBuilder = () => RNAppAuth.credentialBuilder();
